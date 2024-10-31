@@ -1,6 +1,5 @@
 #!/bin/sh
-# This script installs Ollama on Linux.
-# It detects the current operating system architecture and installs the appropriate version of Ollama.
+# Modified script for configuring Ollama service and NVIDIA drivers
 
 set -eu
 
@@ -13,60 +12,25 @@ cleanup() { rm -rf $TEMP_DIR; }
 trap cleanup EXIT
 
 available() { command -v $1 >/dev/null; }
-require() {
-    local MISSING=''
-    for TOOL in $*; do
-        if ! available $TOOL; then
-            MISSING="$MISSING $TOOL"
-        fi
-    done
-
-    echo $MISSING
-}
 
 [ "$(uname -s)" = "Linux" ] || error 'This script is intended to run on Linux only.'
 
-case "$(uname -m)" in
-    x86_64) ARCH="amd64" ;;
-    aarch64|arm64) ARCH="arm64" ;;
-    *) error "Unsupported architecture: $ARCH" ;;
-esac
-
 SUDO=
 if [ "$(id -u)" -ne 0 ]; then
-    # Running as root, no need for sudo
     if ! available sudo; then
         error "This script requires superuser permissions. Please re-run as root."
     fi
-
     SUDO="sudo"
 fi
 
-NEEDS=$(require curl awk grep sed tee xargs)
-if [ -n "$NEEDS" ]; then
-    status "ERROR: The following tools are required but missing:"
-    for NEED in $NEEDS; do
-        echo "  - $NEED"
-    done
-    exit 1
-fi
-
-status "Downloading ollama..."
-curl --fail --show-error --location --progress-bar -o $TEMP_DIR/ollama "https://ollama.ai/download/ollama-linux-$ARCH"
-
+# Encontrar o binário do ollama
 for BINDIR in /usr/local/bin /usr/bin /bin; do
-    echo $PATH | grep -q $BINDIR && break || continue
+    if [ -f "$BINDIR/ollama" ]; then
+        break
+    fi
 done
 
-status "Installing ollama to $BINDIR..."
-$SUDO install -o0 -g0 -m755 -d $BINDIR
-$SUDO install -o0 -g0 -m755 $TEMP_DIR/ollama $BINDIR/ollama
-
-install_success() { status 'Install complete. Run "ollama" from the command line.'; }
-trap install_success EXIT
-
-# Everything from this point onwards is optional.
-
+# Configurar systemd
 configure_systemd() {
     if ! id ollama >/dev/null 2>&1; then
         status "Creating ollama user..."
@@ -97,16 +61,16 @@ EOF
             status "Enabling and starting ollama service..."
             $SUDO systemctl daemon-reload
             $SUDO systemctl enable ollama
-
-            start_service() { $SUDO systemctl restart ollama; }
-            trap start_service EXIT
+            $SUDO systemctl restart ollama
             ;;
     esac
 }
 
+# Resto do script permanece igual, começando da verificação do systemctl
 if available systemctl; then
     configure_systemd
 fi
+
 
 if ! available lspci && ! available lshw; then
     warning "Unable to detect NVIDIA GPU. Install lspci or lshw to automatically detect and install NVIDIA CUDA drivers."

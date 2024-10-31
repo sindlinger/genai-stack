@@ -1,10 +1,11 @@
+huggingface_hub
 openai
 python-dotenv
 wikipedia
 tiktoken
 neo4j
 streamlit
-sentence_transformers==2.2.2
+sentence_transformers==2.6.0
 Pillow
 fastapi
 PyPDF2
@@ -13,7 +14,11 @@ pydantic
 uvicorn
 sse-starlette
 boto3
-# missing from the langchain base image?
-langchain-openai
-langchain-community
+langchain-core>=0.1.4
+langchain>=0.1.4
+langchain-openai>=0.2.4
+langchain-community>=0.3.4
 langchain-google-genai
+langchain-huggingface>=0.1.1
+langchain-ollama>=0.0.2
+typing-extensions<4.0.0,>=3.7.4,

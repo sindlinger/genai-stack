@@ -18,7 +18,7 @@ services:
               capabilities: [gpu]
 
   pull-model:
-    image: genai-stack/pull-model:latest
+    image: docker/genai:ollama-pull
     build:
       context: .
       dockerfile: pull_model.Dockerfile
@@ -30,7 +30,7 @@ services:
     tty: true
 
   database:
-    user: neo4j:neo4j
+    user: "${UID}:${GID}"  # Adicione esta linha  
     image: neo4j:5.11
     ports:
       - 7687:7687
